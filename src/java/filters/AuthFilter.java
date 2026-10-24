@@ -31,6 +31,12 @@ public class AuthFilter implements Filter {
         HttpServletRequest req = (HttpServletRequest) request;
         HttpServletResponse res = (HttpServletResponse) response;
 
+        // Never allow the browser to restore a protected page from its cache
+        // when the user presses Back/Forward after logout or session expiry.
+        res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+        res.setHeader("Pragma", "no-cache");
+        res.setDateHeader("Expires", 0);
+
         HttpSession session = req.getSession(false);
 
         if (session == null
@@ -50,7 +56,7 @@ public class AuthFilter implements Filter {
 
         String role = (String) session.getAttribute("role");
 
-        if (adminPage && !"ADMIN".equals(role)) {
+        if (adminPage && (role == null || !"ADMIN".equalsIgnoreCase(role))) {
             res.sendError(HttpServletResponse.SC_FORBIDDEN);
             return;
         }
