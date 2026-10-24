@@ -7,9 +7,17 @@
     </head>
     <body>
         <h1>SportBooking Login</h1>
-            <p style="color: red">${error}</p>
-            <p style="color: green">${message}</p>
+        
+            <c:if test="${not empty error}">
+                <p style="color: red"><c:out value="${error}"/></p>
+            </c:if>
 
+    
+            <c:if test="${not empty message}">
+                <p style="color: green"><c:out value="${message}"/></p>
+            </c:if>
+
+            
             <form action="${pageContext.request.contextPath}/login" method="post">
 
                 <input type="hidden" name="action" value="login">
