@@ -27,10 +27,10 @@ public class DbContext implements AutoCloseable {
         try {
             String user = "sa";
             String password = "123";
-            String url = "jdbc:sqlserver://LAPTOP-G7VIAT13;databaseName=SportBookingDB;encrypt=true;trustServerCertificate=true;";
+            String url = "jdbc:sqlserver://localhost:1433;databaseName=SportBookingDB;encrypt=true;trustServerCertificate=true;";
             // Nạp JDBC driver từ package sqlserver_jdbc_.jar 
             Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-            connection = DriverManager.getConnection(url, user, pass);
+            connection = DriverManager.getConnection(url, user, password);
         } catch (ClassNotFoundException | SQLException ex) {
             Logger.getLogger(DbContext.class.getName()).log(Level.SEVERE, null, ex);
         }
