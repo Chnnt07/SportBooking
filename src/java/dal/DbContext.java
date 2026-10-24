@@ -15,7 +15,7 @@ public class DbContext {
             // Khai báo các thông số của Hệ quản trị CSDL cần làm việc
             String user = "sa";
             String password = "123";
-            String url = "jdbc:sqlserver://LAPTOP-G7VIAT13;databaseName=SportBookingDB;encrypt=true;trustServerCertificate=true;";
+            String url = "jdbc:sqlserver://ADMIN-PC\\MSSQLSERVER02;databaseName=SportBookingDB;encrypt=true;trustServerCertificate=true;";
             // Nạp JDBC driver từ package sqlserver_jdbc_.jar 
             Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
             // Tiến hành kết nối
