@@ -15,17 +15,11 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
-import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
-@WebFilter(urlPatterns = {
-    "/AdminBookingController",
-    "/AdminCourtController",
-    "/BookingController",
-    "/MyBookingController"
-})
+
 public class AuthFilter implements Filter {
         @Override
     public void doFilter(
@@ -43,7 +37,7 @@ public class AuthFilter implements Filter {
                 || session.getAttribute("userID") == null) {
 
             res.sendRedirect(
-                    req.getContextPath() + "/AuthController");
+                    req.getContextPath() + "/login");
             return;
         }
 
