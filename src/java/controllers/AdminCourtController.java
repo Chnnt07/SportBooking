@@ -8,26 +8,31 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import models.Court;
 
 /**
- * Admin quản lý sân: xem danh sách, thêm, sửa, ngừng hoạt động / kích hoạt lại.
- * URL được ánh xạ trong web.xml (không dùng @WebServlet): /feature/admin-courts
+ * Admin quản lý sân: xem danh sách, tìm theo tên, thêm, sửa, ngừng hoạt động / kích hoạt lại, xóa.
+ * URL được ánh xạ trong web.xml (không dùng @WebServlet): /AdminCourtController
  *
- * GET  /feature/admin-courts                  -> hiện danh sách + form thêm sân
- * GET  /feature/admin-courts?action=edit&id=3 -> hiện danh sách + form sửa sân số 3
+ * GET  /AdminCourtController                  -> hiện danh sách + form thêm sân
+ * GET  /AdminCourtController?action=edit&id=3 -> hiện danh sách + form sửa sân số 3
  * POST action=add                             -> thêm sân
  * POST action=update                          -> sửa sân
+ * GET  ...?keyword=abc                        -> chỉ hiện các sân có tên chứa "abc"
  * POST action=toggle                          -> ngừng hoạt động / kích hoạt lại sân
+ * POST action=delete                          -> xóa sân (nút Xóa ở từng dòng)
+ * POST action=deleteById                      -> xóa sân theo ID gõ ở thanh "Xóa theo ID"
  *
- * Vì AuthFilter không chặn URL này nên servlet tự kiểm tra: phải đăng nhập và có role ADMIN.
+ * Đăng nhập và quyền ADMIN do AuthFilter (khai báo trong web.xml) kiểm tra.
  */
 public class AdminCourtController extends HttpServlet {
 
     private static final String PAGE = "/WEB-INF/views/admin/courts.jsp";
-    private static final String URL = "/feature/admin-courts";
+    private static final String URL = "/AdminCourtController";
 
     // Các loại sân hợp lệ (trùng với dữ liệu mẫu trong database)
     private static final List<String> SPORT_TYPES = Arrays.asList("Badminton", "Pickleball", "Football");
@@ -82,6 +87,10 @@ public class AdminCourtController extends HttpServlet {
                 saveCourt(request, response, dao, action);
             } else if ("toggle".equals(action)) {
                 toggleCourt(request, response, dao);
+            } else if ("delete".equals(action)) {
+                deleteCourt(request, response, dao, toInt(request.getParameter("courtId")));
+            } else if ("deleteById".equals(action)) {
+                deleteById(request, response, dao);
             } else {
                 response.sendRedirect(request.getContextPath() + URL);
             }
@@ -152,6 +161,49 @@ public class AdminCourtController extends HttpServlet {
         }
     }
 
+    // ===================== Xóa sân =====================
+
+    // Xóa theo ID gõ vào thanh "Xóa sân theo ID"
+    private void deleteById(HttpServletRequest request, HttpServletResponse response,
+                            AdminCourtDAO dao) throws IOException {
+        int id = toInt(clean(request.getParameter("deleteId")));
+        if (id <= 0) {
+            redirectWithMessage(request, response,
+                    "Vui lòng nhập ID sân hợp lệ (số nguyên dương).", "error");
+            return;
+        }
+        deleteCourt(request, response, dao, id);
+    }
+
+    // Xóa sân (dùng chung cho nút "Xóa" ở từng dòng và thanh xóa theo ID)
+    private void deleteCourt(HttpServletRequest request, HttpServletResponse response,
+                             AdminCourtDAO dao, int id) throws IOException {
+
+        // Bước 1: sân có tồn tại không?
+        Court court = dao.getById(id);
+        if (court == null) {
+            String text = (dao.getLastError() != null)
+                    ? "Thao tác thất bại: " + dao.getLastError()
+                    : "Không tìm thấy sân có ID = " + id + ".";
+            redirectWithMessage(request, response, text, "error");
+            return;
+        }
+
+        // Bước 2: xóa sân (kèm các booking của sân đó)
+        int deletedBookings = dao.deleteCourt(id);
+        if (deletedBookings < 0) {
+            redirectWithMessage(request, response,
+                    "Thao tác thất bại: " + dao.getLastError(), "error");
+            return;
+        }
+
+        String text = "Đã xóa sân \"" + court.getCourtName() + "\" (ID " + id + ")";
+        if (deletedBookings > 0) {
+            text += " cùng " + deletedBookings + " lượt đặt của sân này";
+        }
+        redirectWithMessage(request, response, text + ".", "success");
+    }
+
     // ===================== Các hàm hỗ trợ =====================
 
     // Chỉ cho Admin đã đăng nhập vào. Session do AuthController lưu: "userID" và "role".
@@ -217,7 +269,12 @@ public class AdminCourtController extends HttpServlet {
             session.removeAttribute("flashType");
         }
 
-        request.setAttribute("courts", dao.getAll());
+        // Thanh tìm theo tên: có từ khóa thì chỉ hiện các sân khớp tên, không thì hiện tất cả
+        String keyword = clean(request.getParameter("keyword"));
+        List<Court> allCourts = dao.getAll();
+        request.setAttribute("allCourts", allCourts);   // dùng cho các thẻ thống kê
+        request.setAttribute("keyword", keyword);
+        request.setAttribute("courts", keyword.isEmpty() ? allCourts : dao.search(keyword));
 
         // Nếu lấy dữ liệu lỗi (mất kết nối, sai tên database...) thì báo lỗi ngay trên trang
         if (dao.getLastError() != null) {
@@ -234,7 +291,14 @@ public class AdminCourtController extends HttpServlet {
         HttpSession session = request.getSession();
         session.setAttribute("flashMessage", message);
         session.setAttribute("flashType", type);
-        response.sendRedirect(request.getContextPath() + URL);
+
+        // Giữ nguyên từ khóa đang tìm để danh sách không bị mất bộ lọc sau khi thao tác
+        String keyword = clean(request.getParameter("keyword"));
+        String target = request.getContextPath() + URL;
+        if (!keyword.isEmpty()) {
+            target += "?keyword=" + URLEncoder.encode(keyword, StandardCharsets.UTF_8);
+        }
+        response.sendRedirect(target);
     }
 
     // Đổi chuỗi sang số nguyên, sai định dạng thì trả về 0

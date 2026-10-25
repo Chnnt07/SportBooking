@@ -1,6 +1,8 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@page import="java.util.List"%>
 <%@page import="java.text.DecimalFormat"%>
+<%@page import="java.net.URLEncoder"%>
+<%@page import="java.nio.charset.StandardCharsets"%>
 <%@page import="models.Court"%>
 <%!
     // Đổi các ký tự đặc biệt của HTML để tên sân không làm hỏng trang (chống XSS)
@@ -18,10 +20,18 @@
 %>
 <%
     // ---- Lấy dữ liệu do AdminCourtController gửi sang ----
-    String url = request.getContextPath() + "/feature/admin-courts";
+    String url = request.getContextPath() + "/AdminCourtController";
     String backUrl = request.getContextPath() + "/AdminBookingController"; // nút quay lại
 
-    List<Court> courts = (List<Court>) request.getAttribute("courts");
+    List<Court> courts = (List<Court>) request.getAttribute("courts");          // danh sách đang hiện (đã lọc)
+    List<Court> allCourts = (List<Court>) request.getAttribute("allCourts");    // tất cả sân (cho thẻ thống kê)
+
+    // Từ khóa đang tìm theo tên sân (rỗng nếu không tìm)
+    String keyword = (String) request.getAttribute("keyword");
+    if (keyword == null) {
+        keyword = "";
+    }
+    String keywordEncoded = URLEncoder.encode(keyword, StandardCharsets.UTF_8); // dùng trong đường dẫn
     String message = (String) request.getAttribute("message");
     String messageType = (String) request.getAttribute("messageType");
 
@@ -37,15 +47,16 @@
     // Số liệu cho các thẻ thống kê
     int total = 0;
     int activeCount = 0;
-    if (courts != null) {
-        total = courts.size();
-        for (Court c : courts) {
+    if (allCourts != null) {
+        total = allCourts.size();
+        for (Court c : allCourts) {
             if (c.isActive()) {
                 activeCount++;
             }
         }
     }
     int inactiveCount = total - activeCount;
+    int shown = (courts == null) ? 0 : courts.size();
 
     DecimalFormat money = new DecimalFormat("#,##0");
 %>
@@ -121,6 +132,20 @@
                           background: #f3f4f6; color: #374151; font-weight: 600; text-decoration: none; }
             .btn-cancel:hover { background: #e5e7eb; }
 
+            /* ===== Thanh tìm kiếm / xóa theo ID ===== */
+            .toolbar { padding: 0 36px 24px; display: flex; gap: 20px; flex-wrap: wrap; }
+            .toolbar form { display: flex; gap: 10px; flex: 1 1 340px; align-items: center; }
+            .toolbar input { flex: 1; min-width: 0; }
+            .btn-search { padding: 13px 22px; border: none; border-radius: 14px; background: #4f46e5;
+                          color: #fff; font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
+            .btn-search:hover { background: #4338ca; }
+            .btn-danger { padding: 13px 22px; border: none; border-radius: 14px; background: #dc2626;
+                          color: #fff; font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+            .btn-danger:hover { background: #b91c1c; }
+            .btn-clear { color: #6b7280; font-weight: 600; text-decoration: none; white-space: nowrap; }
+            .btn-clear:hover { color: #111827; }
+            .muted { color: #6b7280; font-size: 15px; }
+
             /* ===== Bảng ===== */
             .table-wrap { overflow-x: auto; }
             table { width: 100%; border-collapse: collapse; }
@@ -192,6 +217,7 @@
                     <form method="post" action="<%= url %>">
                         <input type="hidden" name="action" value="<%= editing ? "update" : "add" %>">
                         <input type="hidden" name="courtId" value="<%= editing ? esc(formId) : "" %>">
+                        <input type="hidden" name="keyword" value="<%= esc(keyword) %>">
 
                         <div class="form-grid">
                             <div>
@@ -218,7 +244,7 @@
                         <div class="form-actions">
                             <button type="submit" class="btn-primary"><%= editing ? "Lưu thay đổi" : "Thêm sân" %></button>
                             <% if (editing) { %>
-                                <a class="btn-cancel" href="<%= url %>">Hủy sửa</a>
+                                <a class="btn-cancel" href="<%= url %><%= keyword.isEmpty() ? "" : "?keyword=" + keywordEncoded %>">Hủy sửa</a>
                             <% } %>
                         </div>
                     </form>
@@ -229,7 +255,31 @@
             <div class="card">
                 <div class="card-head">
                     <h2>Danh sách sân</h2>
+                    <span class="muted">Hiển thị <%= shown %> / <%= total %> sân</span>
                 </div>
+
+                <%-- ===== 2 thanh: tìm theo tên sân | xóa theo ID ===== --%>
+                <div class="toolbar">
+                    <%-- Thanh 1: tìm sân theo tên --%>
+                    <form method="get" action="<%= url %>">
+                        <input type="text" name="keyword" maxlength="100" placeholder="Tìm theo tên sân..."
+                               value="<%= esc(keyword) %>">
+                        <button type="submit" class="btn-search">Tìm</button>
+                        <% if (!keyword.isEmpty()) { %>
+                            <a class="btn-clear" href="<%= url %>">Xóa lọc</a>
+                        <% } %>
+                    </form>
+
+                    <%-- Thanh 2: nhập ID để xóa sân (không thấy ID thì báo lỗi) --%>
+                    <form method="post" action="<%= url %>"
+                          onsubmit="return confirm('Xóa sân có ID này cùng các lượt đặt của sân? Không thể hoàn tác.');">
+                        <input type="hidden" name="action" value="deleteById">
+                        <input type="hidden" name="keyword" value="<%= esc(keyword) %>">
+                        <input type="number" name="deleteId" min="1" step="1" placeholder="Nhập ID sân cần xóa...">
+                        <button type="submit" class="btn-danger">Xóa theo ID</button>
+                    </form>
+                </div>
+
                 <div class="table-wrap">
                     <table>
                         <tr>
@@ -241,7 +291,13 @@
                         </tr>
 
                         <% if (courts == null || courts.isEmpty()) { %>
-                            <tr><td colspan="5" class="empty">Chưa có sân nào.</td></tr>
+                            <tr><td colspan="5" class="empty">
+                                <% if (keyword.isEmpty()) { %>
+                                    Chưa có sân nào.
+                                <% } else { %>
+                                    Không tìm thấy sân nào có tên chứa "<%= esc(keyword) %>".
+                                <% } %>
+                            </td></tr>
                         <% } else { %>
                             <% for (Court c : courts) { %>
                                 <tr>
@@ -260,12 +316,13 @@
                                     </td>
                                     <td class="actions-cell">
                                         <%-- Nút Sửa --%>
-                                        <a class="act act-edit" href="<%= url %>?action=edit&id=<%= c.getCourtId() %>">Sửa</a>
+                                        <a class="act act-edit" href="<%= url %>?action=edit&id=<%= c.getCourtId() %><%= keyword.isEmpty() ? "" : "&keyword=" + keywordEncoded %>">Sửa</a>
 
                                         <%-- Nút Ngừng hoạt động / Kích hoạt lại --%>
                                         <form class="inline" method="post" action="<%= url %>">
                                             <input type="hidden" name="action" value="toggle">
                                             <input type="hidden" name="courtId" value="<%= c.getCourtId() %>">
+                                            <input type="hidden" name="keyword" value="<%= esc(keyword) %>">
                                             <%-- gửi giá trị ngược với trạng thái hiện tại --%>
                                             <input type="hidden" name="active" value="<%= !c.isActive() %>">
                                             <% if (c.isActive()) { %>
@@ -276,12 +333,13 @@
                                             <% } %>
                                         </form>
 
-                                        <%-- Nút Xóa (chỉ xóa được sân chưa có booking, controller sẽ kiểm tra) --%>
+                                        <%-- Nút Xóa: xóa sân (kèm các lượt đặt của sân đó) --%>
                                         <form class="inline" method="post" action="<%= url %>">
                                             <input type="hidden" name="action" value="delete">
                                             <input type="hidden" name="courtId" value="<%= c.getCourtId() %>">
+                                            <input type="hidden" name="keyword" value="<%= esc(keyword) %>">
                                             <button type="submit" class="act act-delete"
-                                                    onclick="return confirm('Xóa vĩnh viễn sân này? Không thể hoàn tác.');">Xóa</button>
+                                                    onclick="return confirm('Xóa sân này cùng các lượt đặt của sân? Không thể hoàn tác.');">Xóa</button>
                                         </form>
                                     </td>
                                 </tr>

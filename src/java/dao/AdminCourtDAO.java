@@ -136,7 +136,86 @@ public class AdminCourtDAO extends DbContext {
         return false;
     }
 
-    // 7. Đóng kết nối khi dùng xong (servlet gọi trong khối finally)
+    // 7. Tìm sân theo tên (tên chứa từ khóa, không phân biệt hoa/thường).
+    //    Từ khóa rỗng thì trả về tất cả sân.
+    public List<Court> search(String keyword) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return getAll();
+        }
+        List<Court> list = new ArrayList<>();
+        String sql = "SELECT CourtID, CourtName, SportType, PricePerHour, IsActive "
+                   + "FROM Courts WHERE CourtName LIKE ? ORDER BY CourtID";
+
+        // Các ký tự đặc biệt của LIKE (% _ [) được bọc trong [] để tìm đúng như người dùng gõ
+        String pattern = "%" + keyword.trim()
+                .replace("[", "[[]")
+                .replace("%", "[%]")
+                .replace("_", "[_]") + "%";
+
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, pattern);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(toCourt(rs));
+                }
+            }
+        } catch (Exception e) {
+            handle(e);
+        }
+        return list;
+    }
+
+    // 8. Xóa sân. Bảng Bookings tham chiếu tới Courts nên phải xóa các booking của sân trước,
+    //    rồi mới xóa sân. Hai bước nằm trong 1 giao dịch: lỗi ở bước nào thì hoàn tác cả hai.
+    //    Trả về số booking đã bị xóa kèm theo sân, hoặc -1 nếu xóa thất bại.
+    public int deleteCourt(int id) {
+        try {
+            connection.setAutoCommit(false);
+
+            int deletedBookings;
+            try (PreparedStatement ps = connection.prepareStatement(
+                    "DELETE FROM Bookings WHERE CourtID = ?")) {
+                ps.setInt(1, id);
+                deletedBookings = ps.executeUpdate();
+            }
+
+            int deletedCourts;
+            try (PreparedStatement ps = connection.prepareStatement(
+                    "DELETE FROM Courts WHERE CourtID = ?")) {
+                ps.setInt(1, id);
+                deletedCourts = ps.executeUpdate();
+            }
+
+            if (deletedCourts == 0) {           // không có sân nào bị xóa -> hoàn tác
+                connection.rollback();
+                lastError = "Không tìm thấy sân.";
+                return -1;
+            }
+            connection.commit();
+            return deletedBookings;
+
+        } catch (Exception e) {
+            try {
+                if (connection != null) {
+                    connection.rollback();
+                }
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+            handle(e);
+            return -1;
+        } finally {
+            try {
+                if (connection != null) {
+                    connection.setAutoCommit(true);
+                }
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+
+    // 9. Đóng kết nối khi dùng xong (servlet gọi trong khối finally)
     public void close() {
         try {
             if (connection != null) {
