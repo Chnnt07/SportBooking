@@ -17,8 +17,9 @@
     }
 %>
 <%
-    // ---- Lấy dữ liệu do AdminCourtServlet gửi sang ----
+    // ---- Lấy dữ liệu do AdminCourtController gửi sang ----
     String url = request.getContextPath() + "/feature/admin-courts";
+    String backUrl = request.getContextPath() + "/AdminBookingController"; // nút quay lại
 
     List<Court> courts = (List<Court>) request.getAttribute("courts");
     String message = (String) request.getAttribute("message");
@@ -33,44 +34,149 @@
     // formId có giá trị -> đang sửa; không có -> đang thêm mới
     boolean editing = (formId != null && !formId.toString().isEmpty());
 
+    // Số liệu cho các thẻ thống kê
+    int total = 0;
+    int activeCount = 0;
+    if (courts != null) {
+        total = courts.size();
+        for (Court c : courts) {
+            if (c.isActive()) {
+                activeCount++;
+            }
+        }
+    }
+    int inactiveCount = total - activeCount;
+
     DecimalFormat money = new DecimalFormat("#,##0");
 %>
 <!DOCTYPE html>
-<html>
+<html lang="vi">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Quản lý sân - Admin</title>
+        <title>Quản lý sân - SportBooking</title>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
         <style>
-            body { font-family: Arial, sans-serif; margin: 0; background: #f4f6f8; color: #222; }
-            .container { max-width: 900px; margin: 24px auto; padding: 0 16px; }
-            h1 { margin-top: 0; }
-            .box { background: #fff; border-radius: 8px; padding: 16px; margin-bottom: 20px;
-                   box-shadow: 0 1px 3px rgba(0,0,0,.12); }
-            .message { padding: 10px 14px; border-radius: 6px; margin-bottom: 16px; }
-            .message.success { background: #e6f4ea; color: #1e6b34; border: 1px solid #b7dfc2; }
-            .message.error { background: #fdecea; color: #a12622; border: 1px solid #f5c2be; }
-            label { display: block; margin: 10px 0 4px; font-weight: bold; }
-            input[type=text], input[type=number], select { width: 100%; padding: 8px; box-sizing: border-box;
-                   border: 1px solid #bbb; border-radius: 4px; }
-            button, .btn { display: inline-block; padding: 7px 14px; border: none; border-radius: 4px;
-                   cursor: pointer; font-size: 14px; text-decoration: none; color: #fff; background: #1a73e8; }
-            .btn-gray { background: #777; }
-            .btn-orange { background: #e8710a; }
-            .btn-green { background: #188038; }
-            .btn-red { background: #d93025; }
-            .actions { margin-top: 14px; }
+            * { box-sizing: border-box; }
+            body { margin: 0; background: #f5f7fb; color: #111827;
+                   font-family: "Be Vietnam Pro", "Segoe UI", Arial, sans-serif; }
+
+            /* ===== Thanh trên cùng ===== */
+            .topbar { background: #fff; height: 84px; padding: 0 32px; display: flex;
+                      align-items: center; justify-content: space-between;
+                      box-shadow: 0 2px 12px rgba(17,24,39,.05); }
+            .logo { font-size: 32px; font-weight: 800; text-decoration: none; letter-spacing: -.5px; }
+            .logo .sport { color: #5b4fe0; }
+            .logo .booking { color: #f59e0b; }
+            .topbar-right { color: #6b7280; font-size: 16px; }
+            .topbar-right strong { color: #4b5563; font-weight: 700; }
+
+            /* ===== Nội dung ===== */
+            .page { max-width: 1600px; margin: 0 auto; padding: 36px 32px 60px; }
+            .page-head { display: flex; align-items: flex-end; justify-content: space-between;
+                         gap: 16px; flex-wrap: wrap; margin-bottom: 28px; }
+            .eyebrow { color: #4f46e5; font-weight: 700; font-size: 15px;
+                       letter-spacing: .12em; text-transform: uppercase; }
+            h1 { margin: 6px 0 0; font-size: 44px; line-height: 1.15; font-weight: 800; color: #0f172a; }
+            .btn-back { display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px;
+                        border-radius: 999px; background: #fff; color: #4f46e5; font-weight: 700;
+                        font-size: 15px; text-decoration: none; border: 1px solid #e0e3ff;
+                        box-shadow: 0 2px 8px rgba(79,70,229,.08); }
+            .btn-back:hover { background: #eef0ff; }
+
+            /* ===== Thẻ thống kê ===== */
+            .stats { display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 32px; }
+            .stat { background: #fff; border-radius: 24px; padding: 26px 36px; min-width: 285px;
+                    box-shadow: 0 8px 30px rgba(17,24,39,.05); }
+            .stat .label { color: #6b7280; font-size: 17px; }
+            .stat .value { margin-top: 10px; font-size: 40px; font-weight: 800; color: #0f172a; }
+
+            /* ===== Khung nội dung ===== */
+            .card { background: #fff; border-radius: 28px; margin-bottom: 32px; overflow: hidden;
+                    box-shadow: 0 8px 30px rgba(17,24,39,.05); }
+            .card-head { padding: 28px 36px; display: flex; align-items: center;
+                         justify-content: space-between; gap: 12px; }
+            .card-head h2 { margin: 0; font-size: 24px; font-weight: 700; color: #0f172a; }
+            .card-body { padding: 0 36px 32px; }
+
+            /* ===== Thông báo ===== */
+            .message { padding: 14px 20px; border-radius: 16px; margin-bottom: 24px; font-weight: 500; }
+            .message.success { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+            .message.error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+
+            /* ===== Form ===== */
+            .form-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 20px; }
+            @media (max-width: 800px) { .form-grid { grid-template-columns: 1fr; } }
+            label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 15px; color: #374151; }
+            input[type=text], input[type=number], select {
+                width: 100%; padding: 13px 16px; border: 1px solid #e5e7eb; border-radius: 14px;
+                font-family: inherit; font-size: 16px; background: #fff; color: #111827; }
+            input:focus, select:focus { outline: none; border-color: #4f46e5;
+                                        box-shadow: 0 0 0 3px rgba(79,70,229,.15); }
+            .form-actions { margin-top: 24px; display: flex; gap: 12px; flex-wrap: wrap; }
+            .btn-primary { padding: 13px 28px; border: none; border-radius: 14px; background: #4f46e5;
+                           color: #fff; font-family: inherit; font-size: 16px; font-weight: 700; cursor: pointer; }
+            .btn-primary:hover { background: #4338ca; }
+            .btn-cancel { display: inline-flex; align-items: center; padding: 13px 24px; border-radius: 14px;
+                          background: #f3f4f6; color: #374151; font-weight: 600; text-decoration: none; }
+            .btn-cancel:hover { background: #e5e7eb; }
+
+            /* ===== Bảng ===== */
+            .table-wrap { overflow-x: auto; }
             table { width: 100%; border-collapse: collapse; }
-            th, td { padding: 10px; border-bottom: 1px solid #e3e3e3; text-align: left; }
-            th { background: #eef1f5; }
-            .status-on { color: #188038; font-weight: bold; }
-            .status-off { color: #d93025; font-weight: bold; }
+            th { background: #f9fafc; color: #6b7280; font-size: 14px; font-weight: 700;
+                 letter-spacing: .04em; text-transform: uppercase; text-align: left;
+                 padding: 20px 24px; border-top: 1px solid #eef0f5; border-bottom: 1px solid #eef0f5; }
+            td { padding: 22px 24px; border-bottom: 1px solid #eef0f5; font-size: 17px; vertical-align: middle; }
+            th:first-child, td:first-child { padding-left: 36px; }
+            th:last-child, td:last-child { padding-right: 36px; }
+            tr:last-child td { border-bottom: none; }
+            .name { font-weight: 700; color: #0f172a; }
+            .sub { margin-top: 4px; color: #6b7280; font-size: 15px; font-weight: 400; }
+            .price { font-weight: 700; }
+            .pill { display: inline-block; padding: 7px 16px; border-radius: 999px; font-size: 15px; font-weight: 700; }
+            .pill.on { background: #dcfce7; color: #15803d; }
+            .pill.off { background: #fee2e2; color: #b91c1c; }
+            .empty { text-align: center; color: #6b7280; padding: 40px 0; }
+
+            /* ===== Nút thao tác trong bảng ===== */
+            td.actions-cell { white-space: nowrap; }
             form.inline { display: inline; }
+            .act { display: inline-block; padding: 9px 16px; margin-right: 6px; border: none; border-radius: 12px;
+                   font-family: inherit; font-size: 14px; font-weight: 600; text-decoration: none; cursor: pointer; }
+            .act-edit { background: #fff1e0; color: #c2410c; }
+            .act-edit:hover { background: #ffe4c4; }
+            .act-stop { background: #fee2e2; color: #b91c1c; }
+            .act-stop:hover { background: #fecaca; }
+            .act-start { background: #dcfce7; color: #15803d; }
+            .act-start:hover { background: #bbf7d0; }
+            .act-delete { background: #f3f4f6; color: #374151; margin-right: 0; }
+            .act-delete:hover { background: #e5e7eb; }
         </style>
     </head>
     <body>
-        <div class="container">
-            <h1>Quản lý sân</h1>
+        <%-- ============ THANH TRÊN CÙNG ============ --%>
+        <header class="topbar">
+            <a class="logo" href="<%= backUrl %>"><span class="sport">Sport</span><span class="booking">Booking</span></a>
+            <div class="topbar-right">Khu vực quản trị · <strong>Admin</strong></div>
+        </header>
+
+        <main class="page">
+            <div class="page-head">
+                <div>
+                    <div class="eyebrow">Admin Dashboard</div>
+                    <h1>Quản lý sân</h1>
+                </div>
+                <%-- Nút quay lại trang Quản lý lịch đặt --%>
+                <a class="btn-back" href="<%= backUrl %>">&larr; Quay lại quản lý lịch đặt</a>
+            </div>
+
+            <%-- ============ THẺ THỐNG KÊ ============ --%>
+            <div class="stats">
+                <div class="stat"><div class="label">Tổng số sân</div><div class="value"><%= total %></div></div>
+                <div class="stat"><div class="label">Đang hoạt động</div><div class="value"><%= activeCount %></div></div>
+                <div class="stat"><div class="label">Ngừng hoạt động</div><div class="value"><%= inactiveCount %></div></div>
+            </div>
 
             <%-- Thông báo thành công / lỗi --%>
             <% if (message != null) { %>
@@ -78,91 +184,112 @@
             <% } %>
 
             <%-- ============ FORM THÊM / SỬA SÂN ============ --%>
-            <div class="box">
-                <h2><%= editing ? "Sửa sân" : "Thêm sân mới" %></h2>
+            <div class="card">
+                <div class="card-head">
+                    <h2><%= editing ? "Sửa sân" : "Thêm sân mới" %></h2>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="<%= url %>">
+                        <input type="hidden" name="action" value="<%= editing ? "update" : "add" %>">
+                        <input type="hidden" name="courtId" value="<%= editing ? esc(formId) : "" %>">
 
-                <form method="post" action="<%= url %>">
-                    <input type="hidden" name="action" value="<%= editing ? "update" : "add" %>">
-                    <input type="hidden" name="courtId" value="<%= editing ? esc(formId) : "" %>">
+                        <div class="form-grid">
+                            <div>
+                                <label for="courtName">Tên sân</label>
+                                <input type="text" id="courtName" name="courtName" maxlength="100"
+                                       value="<%= esc(formName) %>">
+                            </div>
+                            <div>
+                                <label for="sportType">Loại sân</label>
+                                <select id="sportType" name="sportType">
+                                    <option value="">-- Chọn loại sân --</option>
+                                    <option value="Badminton" <%= "Badminton".equals(formType) ? "selected" : "" %>>Cầu lông (Badminton)</option>
+                                    <option value="Pickleball" <%= "Pickleball".equals(formType) ? "selected" : "" %>>Pickleball</option>
+                                    <option value="Football" <%= "Football".equals(formType) ? "selected" : "" %>>Bóng đá (Football)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="pricePerHour">Giá thuê mỗi giờ (VNĐ)</label>
+                                <input type="number" id="pricePerHour" name="pricePerHour" min="1" step="1"
+                                       value="<%= esc(formPrice) %>">
+                            </div>
+                        </div>
 
-                    <label for="courtName">Tên sân</label>
-                    <input type="text" id="courtName" name="courtName" maxlength="100"
-                           value="<%= esc(formName) %>">
-
-                    <label for="sportType">Loại sân</label>
-                    <select id="sportType" name="sportType">
-                        <option value="">-- Chọn loại sân --</option>
-                        <option value="Badminton" <%= "Badminton".equals(formType) ? "selected" : "" %>>Cầu lông (Badminton)</option>
-                        <option value="Pickleball" <%= "Pickleball".equals(formType) ? "selected" : "" %>>Pickleball</option>
-                        <option value="Football" <%= "Football".equals(formType) ? "selected" : "" %>>Bóng đá (Football)</option>
-                    </select>
-
-                    <label for="pricePerHour">Giá thuê mỗi giờ (VNĐ)</label>
-                    <input type="number" id="pricePerHour" name="pricePerHour" min="1" step="1"
-                           value="<%= esc(formPrice) %>">
-
-                    <div class="actions">
-                        <button type="submit"><%= editing ? "Lưu thay đổi" : "Thêm sân" %></button>
-                        <% if (editing) { %>
-                            <a class="btn btn-gray" href="<%= url %>">Hủy sửa</a>
-                        <% } %>
-                    </div>
-                </form>
+                        <div class="form-actions">
+                            <button type="submit" class="btn-primary"><%= editing ? "Lưu thay đổi" : "Thêm sân" %></button>
+                            <% if (editing) { %>
+                                <a class="btn-cancel" href="<%= url %>">Hủy sửa</a>
+                            <% } %>
+                        </div>
+                    </form>
+                </div>
             </div>
 
             <%-- ============ DANH SÁCH SÂN ============ --%>
-            <div class="box">
-                <h2>Danh sách sân</h2>
-                <table>
-                    <tr>
-                        <th>ID</th>
-                        <th>Tên sân</th>
-                        <th>Loại</th>
-                        <th>Giá/giờ (VNĐ)</th>
-                        <th>Trạng thái</th>
-                        <th>Thao tác</th>
-                    </tr>
+            <div class="card">
+                <div class="card-head">
+                    <h2>Danh sách sân</h2>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <tr>
+                            <th>Mã</th>
+                            <th>Sân</th>
+                            <th>Giá/giờ</th>
+                            <th>Trạng thái</th>
+                            <th>Thao tác</th>
+                        </tr>
 
-                    <% if (courts == null || courts.isEmpty()) { %>
-                        <tr><td colspan="6">Chưa có sân nào.</td></tr>
-                    <% } else { %>
-                        <% for (Court c : courts) { %>
-                            <tr>
-                                <td><%= c.getCourtId() %></td>
-                                <td><%= esc(c.getCourtName()) %></td>
-                                <td><%= esc(c.getSportType()) %></td>
-                                <td><%= money.format(c.getPricePerHour()) %></td>
-                                <td>
-                                    <% if (c.isActive()) { %>
-                                        <span class="status-on">Hoạt động</span>
-                                    <% } else { %>
-                                        <span class="status-off">Ngừng hoạt động</span>
-                                    <% } %>
-                                </td>
-                                <td>
-                                    <%-- Nút Sửa --%>
-                                    <a class="btn btn-orange"
-                                       href="<%= url %>?action=edit&id=<%= c.getCourtId() %>">Sửa</a>
-
-                                    <%-- Nút Ngừng hoạt động / Kích hoạt lại --%>
-                                    <form class="inline" method="post" action="<%= url %>">
-                                        <input type="hidden" name="action" value="toggle">
-                                        <input type="hidden" name="courtId" value="<%= c.getCourtId() %>">
-                                        <%-- gửi giá trị ngược với trạng thái hiện tại --%>
-                                        <input type="hidden" name="active" value="<%= !c.isActive() %>">
+                        <% if (courts == null || courts.isEmpty()) { %>
+                            <tr><td colspan="5" class="empty">Chưa có sân nào.</td></tr>
+                        <% } else { %>
+                            <% for (Court c : courts) { %>
+                                <tr>
+                                    <td>#<%= c.getCourtId() %></td>
+                                    <td>
+                                        <div class="name"><%= esc(c.getCourtName()) %></div>
+                                        <div class="sub"><%= esc(c.getSportType()) %></div>
+                                    </td>
+                                    <td class="price"><%= money.format(c.getPricePerHour()) %> đ</td>
+                                    <td>
                                         <% if (c.isActive()) { %>
-                                            <button type="submit" class="btn-red"
-                                                    onclick="return confirm('Ngừng hoạt động sân này?');">Ngừng</button>
+                                            <span class="pill on">Hoạt động</span>
                                         <% } else { %>
-                                            <button type="submit" class="btn-green">Kích hoạt</button>
+                                            <span class="pill off">Ngừng hoạt động</span>
                                         <% } %>
-                                    </form>
-                                </td>
-                            </tr>
+                                    </td>
+                                    <td class="actions-cell">
+                                        <%-- Nút Sửa --%>
+                                        <a class="act act-edit" href="<%= url %>?action=edit&id=<%= c.getCourtId() %>">Sửa</a>
+
+                                        <%-- Nút Ngừng hoạt động / Kích hoạt lại --%>
+                                        <form class="inline" method="post" action="<%= url %>">
+                                            <input type="hidden" name="action" value="toggle">
+                                            <input type="hidden" name="courtId" value="<%= c.getCourtId() %>">
+                                            <%-- gửi giá trị ngược với trạng thái hiện tại --%>
+                                            <input type="hidden" name="active" value="<%= !c.isActive() %>">
+                                            <% if (c.isActive()) { %>
+                                                <button type="submit" class="act act-stop"
+                                                        onclick="return confirm('Ngừng hoạt động sân này?');">Ngừng</button>
+                                            <% } else { %>
+                                                <button type="submit" class="act act-start">Kích hoạt</button>
+                                            <% } %>
+                                        </form>
+
+                                        <%-- Nút Xóa (chỉ xóa được sân chưa có booking, controller sẽ kiểm tra) --%>
+                                        <form class="inline" method="post" action="<%= url %>">
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="courtId" value="<%= c.getCourtId() %>">
+                                            <button type="submit" class="act act-delete"
+                                                    onclick="return confirm('Xóa vĩnh viễn sân này? Không thể hoàn tác.');">Xóa</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <% } %>
                         <% } %>
-                    <% } %>
-                </table>
+                    </table>
+                </div>
             </div>
-        </div>
+        </main>
     </body>
 </html>
