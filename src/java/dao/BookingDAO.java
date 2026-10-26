@@ -152,7 +152,7 @@ public class BookingDAO {
      * Tạo booking (PENDING). Tổng tiền = giá/giờ x số giờ.
      * Chống đặt trùng: khoảng [start,end) không được chồng lên booking PENDING/CONFIRMED nào
      * của cùng sân + ngày. Vì bảng không có unique index cho khoảng giờ, việc kiểm tra và INSERT
-     * chạy trong một transaction có khóa sp_getapplock theo (sân, ngày), nên hai người đặt cùng lúc
+     * chạy trong một transaction có khóa sp_getapplock (mức Session) theo (sân, ngày), nên hai người đặt cùng lúc
      * không thể cùng lọt qua bước kiểm tra.
      */
     public Result createBooking(int userId, int courtId, LocalDate date, int startMin, int endMin) {
@@ -165,11 +165,14 @@ public class BookingDAO {
         try (DbContext db = new DbContext()) {
             Connection con = db.getConnection();
             if (con == null) {
+                System.err.println("[BookingDAO] Không có kết nối SQL Server.");
                 return Result.ERROR;
             }
             con.setAutoCommit(false);
+            boolean locked = false;
             try {
-                if (!acquireLock(con, courtId, date)) {
+                locked = acquireLock(con, courtId, date);
+                if (!locked) {
                     con.rollback();
                     return Result.ERROR;
                 }
@@ -202,6 +205,10 @@ public class BookingDAO {
                 con.rollback();
                 e.printStackTrace();
                 return Result.ERROR;
+            } finally {
+                if (locked) {
+                    releaseLock(con, courtId, date);
+                }
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -209,15 +216,35 @@ public class BookingDAO {
         }
     }
 
+    /**
+     * Khóa theo (sân, ngày) ở mức Session, nên không cần đang có transaction mở.
+     * (Khóa mức Transaction sẽ lỗi -999 vì JDBC chưa bắt đầu transaction trước lệnh EXEC.)
+     * Khóa được nhả ở releaseLock sau khi commit/rollback, và tự nhả khi đóng kết nối.
+     */
     private boolean acquireLock(Connection con, int courtId, LocalDate date) throws SQLException {
         try (CallableStatement cs = con.prepareCall("{? = call sp_getapplock(?,?,?,?)}")) {
             cs.registerOutParameter(1, Types.INTEGER);
             cs.setString(2, "booking:" + courtId + ":" + date);
             cs.setString(3, "Exclusive");
-            cs.setString(4, "Transaction");
+            cs.setString(4, "Session");
             cs.setInt(5, 5000);
             cs.execute();
-            return cs.getInt(1) >= 0;
+            int code = cs.getInt(1);
+            if (code < 0) {
+                System.err.println("[BookingDAO] sp_getapplock trả về " + code + " (không lấy được khóa).");
+            }
+            return code >= 0;
+        }
+    }
+
+    private void releaseLock(Connection con, int courtId, LocalDate date) {
+        try (CallableStatement cs = con.prepareCall("{? = call sp_releaseapplock(?,?)}")) {
+            cs.registerOutParameter(1, Types.INTEGER);
+            cs.setString(2, "booking:" + courtId + ":" + date);
+            cs.setString(3, "Session");
+            cs.execute();
+        } catch (SQLException e) {
+            // Khóa mức Session sẽ tự nhả khi đóng kết nối, nên bỏ qua.
         }
     }
 
