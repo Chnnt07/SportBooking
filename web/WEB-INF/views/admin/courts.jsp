@@ -18,9 +18,11 @@
 %>
 <%
     // ---- Lấy dữ liệu do AdminCourtServlet gửi sang ----
-    String url = request.getContextPath() + "/feature/admin-courts";
+    String url = request.getContextPath() + "/AdminCourtController";
 
     List<Court> courts = (List<Court>) request.getAttribute("courts");
+    Court deleteCourt = (Court) request.getAttribute("deleteCourt");          // sân đang chờ xác nhận xóa
+    String searchKeyword = (String) request.getAttribute("searchKeyword");    // chữ đã tìm (nếu có)
     String message = (String) request.getAttribute("message");
     String messageType = (String) request.getAttribute("messageType");
 
@@ -59,6 +61,12 @@
             .btn-orange { background: #e8710a; }
             .btn-green { background: #188038; }
             .btn-red { background: #d93025; }
+            .message.warn { background: #fff4e5; color: #8a4b00; border: 1px solid #f5d4a6; }
+            .tools { display: flex; gap: 16px; flex-wrap: wrap; }
+            .tools .box { flex: 1; min-width: 280px; margin-bottom: 20px; }
+            .tools h2 { margin-top: 0; font-size: 18px; }
+            .row { display: flex; gap: 8px; }
+            .row input { flex: 1; }
             .actions { margin-top: 14px; }
             table { width: 100%; border-collapse: collapse; }
             th, td { padding: 10px; border-bottom: 1px solid #e3e3e3; text-align: left; }
@@ -70,12 +78,54 @@
     </head>
     <body>
         <div class="container">
+            <p><a class="btn btn-gray" href="<%= request.getContextPath() %>/AdminBookingController">&laquo; Quay lại lịch đặt</a></p>
             <h1>Quản lý sân</h1>
 
             <%-- Thông báo thành công / lỗi --%>
             <% if (message != null) { %>
                 <div class="message <%= esc(messageType) %>"><%= esc(message) %></div>
             <% } %>
+
+            <%-- ============ HỎI XÁC NHẬN XÓA (chỉ hiện khi id tồn tại) ============ --%>
+            <% if (deleteCourt != null) { %>
+                <div class="message warn">
+                    <b>Bạn có chắc muốn xóa sân này không?</b><br>
+                    ID: <%= deleteCourt.getCourtId() %> -
+                    <%= esc(deleteCourt.getCourtName()) %>
+                    (<%= esc(deleteCourt.getSportType()) %>)
+                    <form class="inline" method="post" action="<%= url %>">
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="courtId" value="<%= deleteCourt.getCourtId() %>">
+                        <button type="submit" class="btn-red">Xóa</button>
+                    </form>
+                    <a class="btn btn-gray" href="<%= url %>">Không xóa</a>
+                </div>
+            <% } %>
+
+            <%-- ============ HAI THANH: TÌM THEO TÊN / XÓA THEO ID ============ --%>
+            <div class="tools">
+                <div class="box">
+                    <h2>Tìm theo tên sân</h2>
+                    <form class="row" method="get" action="<%= url %>">
+                        <input type="hidden" name="action" value="search">
+                        <input type="text" name="keyword" maxlength="100" placeholder="Nhập tên sân"
+                               value="<%= esc(searchKeyword) %>">
+                        <button type="submit">Tìm</button>
+                    </form>
+                    <% if (searchKeyword != null) { %>
+                        <p><a href="<%= url %>">Hiện tất cả sân</a></p>
+                    <% } %>
+                </div>
+
+                <div class="box">
+                    <h2>Xóa theo ID</h2>
+                    <form class="row" method="get" action="<%= url %>">
+                        <input type="hidden" name="action" value="deleteCheck">
+                        <input type="number" name="id" min="1" placeholder="Nhập ID sân">
+                        <button type="submit" class="btn-red">Xóa</button>
+                    </form>
+                </div>
+            </div>
 
             <%-- ============ FORM THÊM / SỬA SÂN ============ --%>
             <div class="box">
@@ -157,6 +207,10 @@
                                             <button type="submit" class="btn-green">Kích hoạt</button>
                                         <% } %>
                                     </form>
+
+                                    <%-- Nút Xóa: kiểm tra rồi hỏi xác nhận (cùng cách với thanh "Xóa theo ID") --%>
+                                    <a class="btn btn-red"
+                                       href="<%= url %>?action=deleteCheck&id=<%= c.getCourtId() %>">Xóa</a>
                                 </td>
                             </tr>
                         <% } %>

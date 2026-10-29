@@ -9,7 +9,7 @@ import java.util.List;
 import models.Court;
 
 /**
- * DAO cho chức năng Admin quản lý sân: lấy danh sách, thêm, sửa, ngừng/kích hoạt sân.
+ * DAO cho chức năng Admin quản lý sân: lấy danh sách, tìm theo tên, thêm, sửa, ngừng/kích hoạt, xóa sân.
  * Kế thừa DbContext nên có sẵn biến "connection" để làm việc với database.
  */
 public class AdminCourtDAO extends DbContext {
@@ -123,7 +123,7 @@ public class AdminCourtDAO extends DbContext {
     }
 
     // 6. Ngừng hoạt động (active = false) hoặc kích hoạt lại (active = true)
-    //    Không xóa sân khỏi database vì các booking cũ vẫn tham chiếu tới sân này.
+    //    (Ngừng hoạt động chỉ ẩn sân với khách, vẫn giữ dữ liệu. Muốn xóa hẳn thì dùng delete ở dưới.)
     public boolean setActive(int id, boolean active) {
         String sql = "UPDATE Courts SET IsActive = ? WHERE CourtID = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -136,7 +136,53 @@ public class AdminCourtDAO extends DbContext {
         return false;
     }
 
-    // 7. Đóng kết nối khi dùng xong (servlet gọi trong khối finally)
+    // 7. Tìm sân theo tên: lấy các sân có tên CHỨA từ khóa (ví dụ "A" -> "Sân A", "Sân Ab")
+    public List<Court> searchByName(String keyword) {
+        List<Court> list = new ArrayList<>();
+        String sql = "SELECT CourtID, CourtName, SportType, PricePerHour, IsActive "
+                   + "FROM Courts WHERE CourtName LIKE ? ORDER BY CourtID";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, "%" + keyword + "%");
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(toCourt(rs));
+                }
+            }
+        } catch (Exception e) {
+            handle(e);
+        }
+        return list;
+    }
+
+    // 8. Đếm số lượt đặt của 1 sân (sân đã có lượt đặt thì không được xóa). Lỗi thì trả về -1
+    public int countBookings(int courtId) {
+        String sql = "SELECT COUNT(*) FROM Bookings WHERE CourtID = ?";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setInt(1, courtId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        } catch (Exception e) {
+            handle(e);
+        }
+        return -1;
+    }
+
+    // 9. Xóa hẳn 1 sân khỏi database
+    public boolean delete(int id) {
+        String sql = "DELETE FROM Courts WHERE CourtID = ?";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            handle(e);
+        }
+        return false;
+    }
+
+    // 10. Đóng kết nối khi dùng xong (servlet gọi trong khối finally)
     public void close() {
         try {
             if (connection != null) {
