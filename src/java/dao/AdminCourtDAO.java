@@ -9,7 +9,7 @@ import java.util.List;
 import models.Court;
 
 /**
- * DAO cho chức năng Admin quản lý sân: lấy danh sách, tìm theo tên, thêm, sửa, ngừng/kích hoạt, xóa sân.
+ * DAO cho chức năng Admin quản lý sân: lấy danh sách, tìm theo tên, thêm, sửa, ngừng/kích hoạt sân.
  * Kế thừa DbContext nên có sẵn biến "connection" để làm việc với database.
  */
 public class AdminCourtDAO extends DbContext {
@@ -123,7 +123,7 @@ public class AdminCourtDAO extends DbContext {
     }
 
     // 6. Ngừng hoạt động (active = false) hoặc kích hoạt lại (active = true)
-    //    (Ngừng hoạt động chỉ ẩn sân với khách, vẫn giữ dữ liệu. Muốn xóa hẳn thì dùng delete ở dưới.)
+    //    (Ngừng hoạt động chỉ ẩn sân với khách, vẫn giữ dữ liệu.)
     public boolean setActive(int id, boolean active) {
         String sql = "UPDATE Courts SET IsActive = ? WHERE CourtID = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -154,35 +154,7 @@ public class AdminCourtDAO extends DbContext {
         return list;
     }
 
-    // 8. Đếm số lượt đặt của 1 sân (sân đã có lượt đặt thì không được xóa). Lỗi thì trả về -1
-    public int countBookings(int courtId) {
-        String sql = "SELECT COUNT(*) FROM Bookings WHERE CourtID = ?";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setInt(1, courtId);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt(1);
-                }
-            }
-        } catch (Exception e) {
-            handle(e);
-        }
-        return -1;
-    }
-
-    // 9. Xóa hẳn 1 sân khỏi database
-    public boolean delete(int id) {
-        String sql = "DELETE FROM Courts WHERE CourtID = ?";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setInt(1, id);
-            return ps.executeUpdate() > 0;
-        } catch (Exception e) {
-            handle(e);
-        }
-        return false;
-    }
-
-    // 10. Đóng kết nối khi dùng xong (servlet gọi trong khối finally)
+    // 8. Đóng kết nối khi dùng xong (servlet gọi trong khối finally)
     public void close() {
         try {
             if (connection != null) {

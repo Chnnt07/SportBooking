@@ -13,18 +13,16 @@ import java.util.List;
 import models.Court;
 
 /**
- * Admin quản lý sân: xem danh sách, tìm theo tên, thêm, sửa, ngừng hoạt động / kích hoạt lại, xóa.
+ * Admin quản lý sân: xem danh sách, tìm theo tên, thêm, sửa, ngừng hoạt động / kích hoạt lại.
  * URL được ánh xạ trong web.xml (không dùng @WebServlet): /AdminCourtController
  * (AuthFilter cũng chặn đúng URL này: phải đăng nhập và có role ADMIN)
  *
  * GET  /AdminCourtController                          -> hiện danh sách + form thêm sân
  * GET  /AdminCourtController?action=edit&id=3         -> nạp sân số 3 vào form sửa
  * GET  /AdminCourtController?action=search&keyword=A  -> tìm sân theo tên
- * GET  /AdminCourtController?action=deleteCheck&id=3  -> kiểm tra sân 3 có tồn tại, hiện hỏi "có xóa không?"
  * POST action=add                                     -> thêm sân
  * POST action=update                                  -> sửa sân (UPDATE)
  * POST action=toggle                                  -> ngừng hoạt động / kích hoạt lại sân
- * POST action=delete                                  -> xóa sân (sau khi người dùng bấm đồng ý)
  */
 public class AdminCourtController extends HttpServlet {
 
@@ -65,10 +63,6 @@ public class AdminCourtController extends HttpServlet {
             // Thanh "Tìm theo tên sân": có sân tên khớp thì hiện danh sách các sân đó
             } else if ("search".equals(action)) {
                 searchCourts(request, dao);
-
-            // Thanh "Xóa theo ID" (hoặc nút Xóa ở mỗi dòng): kiểm tra sân có tồn tại không
-            } else if ("deleteCheck".equals(action)) {
-                checkBeforeDelete(request, dao);
             }
             showPage(request, response, dao);
         } finally {
@@ -94,8 +88,6 @@ public class AdminCourtController extends HttpServlet {
                 saveCourt(request, response, dao, action);
             } else if ("toggle".equals(action)) {
                 toggleCourt(request, response, dao);
-            } else if ("delete".equals(action)) {
-                deleteCourt(request, response, dao);
             } else {
                 response.sendRedirect(request.getContextPath() + URL);
             }
@@ -186,47 +178,6 @@ public class AdminCourtController extends HttpServlet {
             request.setAttribute("courts", found); // chỉ hiện các sân tìm được
             request.setAttribute("message", "Tìm thấy " + found.size() + " sân có tên chứa \"" + keyword + "\".");
             request.setAttribute("messageType", "success");
-        }
-    }
-
-    // ===================== Xóa sân: bước 1 - kiểm tra id có tồn tại không =====================
-    private void checkBeforeDelete(HttpServletRequest request, AdminCourtDAO dao) {
-        int id = toInt(request.getParameter("id"));
-        Court court = dao.getById(id);
-
-        if (court == null) {
-            request.setAttribute("message", "Không tìm thấy sân có ID = \"" + clean(request.getParameter("id")) + "\".");
-            request.setAttribute("messageType", "error");
-        } else {
-            // Có sân -> gửi sang JSP để hiện câu hỏi "Bạn có chắc muốn xóa không?"
-            request.setAttribute("deleteCourt", court);
-        }
-    }
-
-    // ===================== Xóa sân: bước 2 - người dùng đã bấm đồng ý =====================
-    private void deleteCourt(HttpServletRequest request, HttpServletResponse response,
-                             AdminCourtDAO dao) throws IOException {
-
-        int id = toInt(request.getParameter("courtId"));
-        Court court = dao.getById(id);
-
-        if (court == null) {
-            redirectWithMessage(request, response, "Không tìm thấy sân cần xóa.", "error");
-            return;
-        }
-
-        // Sân đã có lượt đặt thì không xóa được (các booking cũ còn tham chiếu tới sân)
-        int bookings = dao.countBookings(id);
-        if (bookings > 0) {
-            redirectWithMessage(request, response, "Sân \"" + court.getCourtName() + "\" đã có "
-                    + bookings + " lượt đặt nên không thể xóa. Hãy dùng nút Ngừng.", "error");
-            return;
-        }
-
-        if (bookings >= 0 && dao.delete(id)) {
-            redirectWithMessage(request, response, "Đã xóa sân \"" + court.getCourtName() + "\".", "success");
-        } else {
-            redirectWithMessage(request, response, "Xóa thất bại: " + dao.getLastError(), "error");
         }
     }
 
