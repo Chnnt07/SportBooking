@@ -9,7 +9,11 @@ import java.util.List;
 import models.Court;
 
 /**
+<<<<<<< Updated upstream
  * DAO cho chức năng Admin quản lý sân: lấy danh sách, thêm, sửa, ngừng/kích hoạt sân.
+=======
+ * DAO cho chức năng Admin quản lý sân: lấy danh sách, tìm theo tên, thêm, sửa, ngừng/kích hoạt sân.
+>>>>>>> Stashed changes
  * Kế thừa DbContext nên có sẵn biến "connection" để làm việc với database.
  */
 public class AdminCourtDAO extends DbContext {
@@ -123,7 +127,11 @@ public class AdminCourtDAO extends DbContext {
     }
 
     // 6. Ngừng hoạt động (active = false) hoặc kích hoạt lại (active = true)
+<<<<<<< Updated upstream
     //    Không xóa sân khỏi database vì các booking cũ vẫn tham chiếu tới sân này.
+=======
+    //    (Ngừng hoạt động chỉ ẩn sân với khách, vẫn giữ dữ liệu.)
+>>>>>>> Stashed changes
     public boolean setActive(int id, boolean active) {
         String sql = "UPDATE Courts SET IsActive = ? WHERE CourtID = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -165,6 +173,7 @@ public class AdminCourtDAO extends DbContext {
         return list;
     }
 
+<<<<<<< Updated upstream
     // 8. Xóa sân. Bảng Bookings tham chiếu tới Courts nên phải xóa các booking của sân trước,
     //    rồi mới xóa sân. Hai bước nằm trong 1 giao dịch: lỗi ở bước nào thì hoàn tác cả hai.
     //    Trả về số booking đã bị xóa kèm theo sân, hoặc -1 nếu xóa thất bại.
@@ -216,6 +225,9 @@ public class AdminCourtDAO extends DbContext {
     }
 
     // 9. Đóng kết nối khi dùng xong (servlet gọi trong khối finally)
+=======
+    // 8. Đóng kết nối khi dùng xong (servlet gọi trong khối finally)
+>>>>>>> Stashed changes
     public void close() {
         try {
             if (connection != null) {

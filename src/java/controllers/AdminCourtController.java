@@ -15,9 +15,10 @@ import java.util.List;
 import models.Court;
 
 /**
- * Admin quản lý sân: xem danh sách, tìm theo tên, thêm, sửa, ngừng hoạt động / kích hoạt lại, xóa.
+ * Admin quản lý sân: xem danh sách, tìm theo tên, thêm, sửa, ngừng hoạt động / kích hoạt lại.
  * URL được ánh xạ trong web.xml (không dùng @WebServlet): /AdminCourtController
  *
+<<<<<<< Updated upstream
  * GET  /AdminCourtController                  -> hiện danh sách + form thêm sân
  * GET  /AdminCourtController?action=edit&id=3 -> hiện danh sách + form sửa sân số 3
  * POST action=add                             -> thêm sân
@@ -28,6 +29,14 @@ import models.Court;
  * POST action=deleteById                      -> xóa sân theo ID gõ ở thanh "Xóa theo ID"
  *
  * Đăng nhập và quyền ADMIN do AuthFilter (khai báo trong web.xml) kiểm tra.
+=======
+ * GET  /AdminCourtController                          -> hiện danh sách + form thêm sân
+ * GET  /AdminCourtController?action=edit&id=3         -> nạp sân số 3 vào form sửa
+ * GET  /AdminCourtController?action=search&keyword=A  -> tìm sân theo tên
+ * POST action=add                                     -> thêm sân
+ * POST action=update                                  -> sửa sân (UPDATE)
+ * POST action=toggle                                  -> ngừng hoạt động / kích hoạt lại sân
+>>>>>>> Stashed changes
  */
 public class AdminCourtController extends HttpServlet {
 
@@ -62,6 +71,13 @@ public class AdminCourtController extends HttpServlet {
                     request.setAttribute("formPrice",
                             court.getPricePerHour().stripTrailingZeros().toPlainString());
                 }
+<<<<<<< Updated upstream
+=======
+
+            // Thanh "Tìm theo tên sân": có sân tên khớp thì hiện danh sách các sân đó
+            } else if ("search".equals(action)) {
+                searchCourts(request, dao);
+>>>>>>> Stashed changes
             }
             showPage(request, response, dao);
         } finally {
@@ -87,10 +103,13 @@ public class AdminCourtController extends HttpServlet {
                 saveCourt(request, response, dao, action);
             } else if ("toggle".equals(action)) {
                 toggleCourt(request, response, dao);
+<<<<<<< Updated upstream
             } else if ("delete".equals(action)) {
                 deleteCourt(request, response, dao, toInt(request.getParameter("courtId")));
             } else if ("deleteById".equals(action)) {
                 deleteById(request, response, dao);
+=======
+>>>>>>> Stashed changes
             } else {
                 response.sendRedirect(request.getContextPath() + URL);
             }
@@ -175,6 +194,7 @@ public class AdminCourtController extends HttpServlet {
         deleteCourt(request, response, dao, id);
     }
 
+<<<<<<< Updated upstream
     // Xóa sân (dùng chung cho nút "Xóa" ở từng dòng và thanh xóa theo ID)
     private void deleteCourt(HttpServletRequest request, HttpServletResponse response,
                              AdminCourtDAO dao, int id) throws IOException {
@@ -204,6 +224,8 @@ public class AdminCourtController extends HttpServlet {
         redirectWithMessage(request, response, text + ".", "success");
     }
 
+=======
+>>>>>>> Stashed changes
     // ===================== Các hàm hỗ trợ =====================
 
     // Chỉ cho Admin đã đăng nhập vào. Session do AuthController lưu: "userID" và "role".
