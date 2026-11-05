@@ -9,7 +9,15 @@ import java.util.List;
 import models.Court;
 
 /**
+<<<<<<< HEAD
  * DAO cho chức năng Admin quản lý sân: lấy danh sách, tìm theo tên, thêm, sửa, ngừng/kích hoạt sân.
+=======
+<<<<<<< Updated upstream
+ * DAO cho chức năng Admin quản lý sân: lấy danh sách, thêm, sửa, ngừng/kích hoạt sân.
+=======
+ * DAO cho chức năng Admin quản lý sân: lấy danh sách, tìm theo tên, thêm, sửa, ngừng/kích hoạt sân.
+>>>>>>> Stashed changes
+>>>>>>> feature/admin-courts
  * Kế thừa DbContext nên có sẵn biến "connection" để làm việc với database.
  */
 public class AdminCourtDAO extends DbContext {
@@ -123,7 +131,15 @@ public class AdminCourtDAO extends DbContext {
     }
 
     // 6. Ngừng hoạt động (active = false) hoặc kích hoạt lại (active = true)
+<<<<<<< HEAD
     //    (Ngừng hoạt động chỉ ẩn sân với khách, vẫn giữ dữ liệu.)
+=======
+<<<<<<< Updated upstream
+    //    Không xóa sân khỏi database vì các booking cũ vẫn tham chiếu tới sân này.
+=======
+    //    (Ngừng hoạt động chỉ ẩn sân với khách, vẫn giữ dữ liệu.)
+>>>>>>> Stashed changes
+>>>>>>> feature/admin-courts
     public boolean setActive(int id, boolean active) {
         String sql = "UPDATE Courts SET IsActive = ? WHERE CourtID = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -136,6 +152,7 @@ public class AdminCourtDAO extends DbContext {
         return false;
     }
 
+<<<<<<< HEAD
     // 7. Tìm sân theo tên: lấy các sân có tên CHỨA từ khóa (ví dụ "A" -> "Sân A", "Sân Ab")
     public List<Court> searchByName(String keyword) {
         List<Court> list = new ArrayList<>();
@@ -143,6 +160,26 @@ public class AdminCourtDAO extends DbContext {
                    + "FROM Courts WHERE CourtName LIKE ? ORDER BY CourtID";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, "%" + keyword + "%");
+=======
+    // 7. Tìm sân theo tên (tên chứa từ khóa, không phân biệt hoa/thường).
+    //    Từ khóa rỗng thì trả về tất cả sân.
+    public List<Court> search(String keyword) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return getAll();
+        }
+        List<Court> list = new ArrayList<>();
+        String sql = "SELECT CourtID, CourtName, SportType, PricePerHour, IsActive "
+                   + "FROM Courts WHERE CourtName LIKE ? ORDER BY CourtID";
+
+        // Các ký tự đặc biệt của LIKE (% _ [) được bọc trong [] để tìm đúng như người dùng gõ
+        String pattern = "%" + keyword.trim()
+                .replace("[", "[[]")
+                .replace("%", "[%]")
+                .replace("_", "[_]") + "%";
+
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, pattern);
+>>>>>>> feature/admin-courts
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     list.add(toCourt(rs));
@@ -154,7 +191,65 @@ public class AdminCourtDAO extends DbContext {
         return list;
     }
 
+<<<<<<< HEAD
     // 8. Đóng kết nối khi dùng xong (servlet gọi trong khối finally)
+=======
+<<<<<<< Updated upstream
+    // 8. Xóa sân. Bảng Bookings tham chiếu tới Courts nên phải xóa các booking của sân trước,
+    //    rồi mới xóa sân. Hai bước nằm trong 1 giao dịch: lỗi ở bước nào thì hoàn tác cả hai.
+    //    Trả về số booking đã bị xóa kèm theo sân, hoặc -1 nếu xóa thất bại.
+    public int deleteCourt(int id) {
+        try {
+            connection.setAutoCommit(false);
+
+            int deletedBookings;
+            try (PreparedStatement ps = connection.prepareStatement(
+                    "DELETE FROM Bookings WHERE CourtID = ?")) {
+                ps.setInt(1, id);
+                deletedBookings = ps.executeUpdate();
+            }
+
+            int deletedCourts;
+            try (PreparedStatement ps = connection.prepareStatement(
+                    "DELETE FROM Courts WHERE CourtID = ?")) {
+                ps.setInt(1, id);
+                deletedCourts = ps.executeUpdate();
+            }
+
+            if (deletedCourts == 0) {           // không có sân nào bị xóa -> hoàn tác
+                connection.rollback();
+                lastError = "Không tìm thấy sân.";
+                return -1;
+            }
+            connection.commit();
+            return deletedBookings;
+
+        } catch (Exception e) {
+            try {
+                if (connection != null) {
+                    connection.rollback();
+                }
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+            handle(e);
+            return -1;
+        } finally {
+            try {
+                if (connection != null) {
+                    connection.setAutoCommit(true);
+                }
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+
+    // 9. Đóng kết nối khi dùng xong (servlet gọi trong khối finally)
+=======
+    // 8. Đóng kết nối khi dùng xong (servlet gọi trong khối finally)
+>>>>>>> Stashed changes
+>>>>>>> feature/admin-courts
     public void close() {
         try {
             if (connection != null) {
