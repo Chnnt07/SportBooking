@@ -1,7 +1,8 @@
+
 package controllers;
 
+import dao.CourtDAO;
 import java.io.IOException;
-import java.io.PrintWriter;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -11,36 +12,38 @@ import jakarta.servlet.http.HttpServletResponse;
 @WebServlet(name = "CourtController", urlPatterns = {"/CourtController"})
 public class CourtController extends HttpServlet {
 
-    protected void processRequest(HttpServletRequest request, HttpServletResponse response)
+    @Override
+    protected void doGet(HttpServletRequest request,
+                         HttpServletResponse response)
             throws ServletException, IOException {
-        response.setContentType("text/html;charset=UTF-8");
-        try (PrintWriter out = response.getWriter()) {
-            out.println("<!DOCTYPE html>");
-            out.println("<html>");
-            out.println("<head>");
-            out.println("<title>Servlet CourtController</title>");
-            out.println("</head>");
-            out.println("<body>");
-            out.println("<h1>Servlet CourtController at " + request.getContextPath() + "</h1>");
-            out.println("</body>");
-            out.println("</html>");
+
+        request.setCharacterEncoding("UTF-8");
+
+        String keyword = request.getParameter("keyword");
+        String sportType = request.getParameter("sportType");
+
+        if (keyword == null) keyword = "";
+        if (sportType == null) sportType = "";
+
+        keyword = keyword.trim();
+        sportType = sportType.trim();
+
+        CourtDAO dao = new CourtDAO();
+
+        try {
+            request.setAttribute(
+                "courts",
+                dao.searchCourts(keyword, sportType)
+            );
+            request.setAttribute("keyword", keyword);
+            request.setAttribute("sportType", sportType);
+
+            request.getRequestDispatcher(
+                "/WEB-INF/views/courts.jsp"
+            ).forward(request, response);
+
+        } finally {
+            dao.close();
         }
-    }
-
-    @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        processRequest(request, response);
-    }
-
-    @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        processRequest(request, response);
-    }
-
-    @Override
-    public String getServletInfo() {
-        return "Short description";
     }
 }
