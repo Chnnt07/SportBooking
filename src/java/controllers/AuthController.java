@@ -27,7 +27,6 @@ public class AuthController extends HttpServlet {
             ).forward(request, response);
 
         } else {
-            // Display a registration success message when appropriate.
             if ("1".equals(request.getParameter("registered"))) {
                 request.setAttribute(
                     "message",
@@ -106,13 +105,14 @@ public class AuthController extends HttpServlet {
                 return;
             }
 
-            // Invalidate any previous session before creating a new one.
+            // Invalidate previous session.
             HttpSession oldSession = request.getSession(false);
 
             if (oldSession != null) {
                 oldSession.invalidate();
             }
 
+            // Create new session.
             HttpSession session = request.getSession(true);
 
             session.setAttribute("userID", user.getUserID());
@@ -120,6 +120,7 @@ public class AuthController extends HttpServlet {
             session.setAttribute("username", user.getUsername());
             session.setAttribute("role", user.getRole());
 
+            // Redirect according to role.
             if ("ADMIN".equalsIgnoreCase(user.getRole())) {
                 response.sendRedirect(
                     request.getContextPath()
@@ -234,7 +235,6 @@ public class AuthController extends HttpServlet {
                 return;
             }
 
-            // Redirect to the new login URL.
             response.sendRedirect(
                 request.getContextPath() + "/login?registered=1"
             );
