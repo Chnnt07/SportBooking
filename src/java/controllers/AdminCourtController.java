@@ -42,9 +42,12 @@ import models.Court;
  * POST action=update                                  -> sửa sân (UPDATE)
  * POST action=toggle                                  -> ngừng hoạt động / kích hoạt lại sân
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> Stashed changes
 >>>>>>> feature/admin-courts
+=======
+>>>>>>> origin/feature/court-list-hung
  */
 public class AdminCourtController extends HttpServlet {
 
@@ -91,9 +94,12 @@ public class AdminCourtController extends HttpServlet {
             } else if ("search".equals(action)) {
                 searchCourts(request, dao);
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> Stashed changes
 >>>>>>> feature/admin-courts
+=======
+>>>>>>> origin/feature/court-list-hung
             }
             showPage(request, response, dao);
         } finally {
@@ -119,6 +125,7 @@ public class AdminCourtController extends HttpServlet {
                 saveCourt(request, response, dao, action);
             } else if ("toggle".equals(action)) {
                 toggleCourt(request, response, dao);
+<<<<<<< HEAD
 <<<<<<< Updated upstream
             } else if ("delete".equals(action)) {
                 deleteCourt(request, response, dao, toInt(request.getParameter("courtId")));
@@ -126,6 +133,8 @@ public class AdminCourtController extends HttpServlet {
                 deleteById(request, response, dao);
 =======
 >>>>>>> Stashed changes
+=======
+>>>>>>> origin/feature/court-list-hung
             } else {
                 response.sendRedirect(request.getContextPath() + URL);
             }
@@ -220,6 +229,7 @@ public class AdminCourtController extends HttpServlet {
         }
     }
 
+<<<<<<< HEAD
 =======
     // ===================== Xóa sân =====================
 
@@ -268,6 +278,8 @@ public class AdminCourtController extends HttpServlet {
 =======
 >>>>>>> Stashed changes
 >>>>>>> feature/admin-courts
+=======
+>>>>>>> origin/feature/court-list-hung
     // ===================== Các hàm hỗ trợ =====================
 
     // Chỉ cho Admin đã đăng nhập vào. Session do AuthController lưu: "userID" và "role".
