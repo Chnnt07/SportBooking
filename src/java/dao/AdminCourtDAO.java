@@ -10,6 +10,7 @@ import models.Court;
 
 /**
 <<<<<<< HEAD
+<<<<<<< HEAD
  * DAO cho chức năng Admin quản lý sân: lấy danh sách, tìm theo tên, thêm, sửa, ngừng/kích hoạt sân.
 =======
 <<<<<<< Updated upstream
@@ -18,6 +19,9 @@ import models.Court;
  * DAO cho chức năng Admin quản lý sân: lấy danh sách, tìm theo tên, thêm, sửa, ngừng/kích hoạt sân.
 >>>>>>> Stashed changes
 >>>>>>> feature/admin-courts
+=======
+ * DAO cho chức năng Admin quản lý sân: lấy danh sách, tìm theo tên, thêm, sửa, ngừng/kích hoạt sân.
+>>>>>>> origin/feature/court-list-hung
  * Kế thừa DbContext nên có sẵn biến "connection" để làm việc với database.
  */
 public class AdminCourtDAO extends DbContext {
@@ -132,6 +136,7 @@ public class AdminCourtDAO extends DbContext {
 
     // 6. Ngừng hoạt động (active = false) hoặc kích hoạt lại (active = true)
 <<<<<<< HEAD
+<<<<<<< HEAD
     //    (Ngừng hoạt động chỉ ẩn sân với khách, vẫn giữ dữ liệu.)
 =======
 <<<<<<< Updated upstream
@@ -140,6 +145,9 @@ public class AdminCourtDAO extends DbContext {
     //    (Ngừng hoạt động chỉ ẩn sân với khách, vẫn giữ dữ liệu.)
 >>>>>>> Stashed changes
 >>>>>>> feature/admin-courts
+=======
+    //    (Ngừng hoạt động chỉ ẩn sân với khách, vẫn giữ dữ liệu.)
+>>>>>>> origin/feature/court-list-hung
     public boolean setActive(int id, boolean active) {
         String sql = "UPDATE Courts SET IsActive = ? WHERE CourtID = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -191,6 +199,7 @@ public class AdminCourtDAO extends DbContext {
         return list;
     }
 
+<<<<<<< HEAD
 <<<<<<< HEAD
     // 8. Đóng kết nối khi dùng xong (servlet gọi trong khối finally)
 =======
@@ -250,6 +259,9 @@ public class AdminCourtDAO extends DbContext {
     // 8. Đóng kết nối khi dùng xong (servlet gọi trong khối finally)
 >>>>>>> Stashed changes
 >>>>>>> feature/admin-courts
+=======
+    // 8. Đóng kết nối khi dùng xong (servlet gọi trong khối finally)
+>>>>>>> origin/feature/court-list-hung
     public void close() {
         try {
             if (connection != null) {
