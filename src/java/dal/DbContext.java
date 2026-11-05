@@ -1,3 +1,7 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
 package dal;
 
 import java.io.FileInputStream;
@@ -13,6 +17,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
+<<<<<<< HEAD
  * Kết nối SQL Server dùng chung cho toàn bộ DAO.
  *
  * Mặc định: localhost:1433, database SportBookingDB, user sa, mật khẩu 123.
@@ -80,6 +85,35 @@ public class DbContext implements AutoCloseable {
                 connection.close();
             }
         } catch (SQLException ignored) {
+=======
+ *
+ * @author Trinh Ngoc Hieu
+ */
+public class DbContext implements AutoCloseable {
+    protected Connection connection;
+    public DbContext()
+    {
+        //@Students: You are allowed to edit user, pass, url variables to fit 
+        //your system configuration
+        //You can also add more methods for Database Interaction tasks. 
+        //But we recommend you to do it in another class
+        // For example : StudentDBContext extends DBContext , 
+        //where StudentDBContext is located in dal package, 
+        try {
+            String user = "sa";
+            String pass = "123456789";
+            String url =
+    "jdbc:sqlserver://localhost:1433;"
+  + "databaseName=SportBookingDB;"
+  + "encrypt=true;"
+  + "trustServerCertificate=true;";
+            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+            connection = DriverManager.getConnection(url, user, pass);
+        } catch (ClassNotFoundException | SQLException ex) {
+            Logger.getLogger(DbContext.class.getName()).log(Level.SEVERE, null, ex);
+>>>>>>> feature/admin-bookings
         }
     }
+    public Connection getConnection() { return connection; }
+    @Override public void close() { try { if (connection != null) connection.close(); } catch (SQLException ignored) { } }
 }
