@@ -79,6 +79,9 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> origin/feature/court-list-hung
         <title>SportBooking | Quản lý sân</title>
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -153,6 +156,7 @@
         </style>
     </head>
     <body>
+<<<<<<< HEAD
 =======
 <<<<<<< Updated upstream
         <title>Quản lý sân - SportBooking</title>
@@ -368,6 +372,8 @@
     </head>
     <body>
 >>>>>>> feature/admin-courts
+=======
+>>>>>>> origin/feature/court-list-hung
         <header class="topbar">
             <div class="brand">Sport<span>Booking</span></div>
             <div class="profile">Khu vực quản trị · <b>Admin</b>
@@ -379,9 +385,12 @@
             <div class="eyebrow">Admin dashboard</div>
             <h1 class="title">Quản lý sân</h1>
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> Stashed changes
 >>>>>>> feature/admin-courts
+=======
+>>>>>>> origin/feature/court-list-hung
 
             <%-- Thông báo thành công / lỗi --%>
             <% if (message != null) { %>
@@ -389,6 +398,9 @@
             <% } %>
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> origin/feature/court-list-hung
             <%-- ============ THANH TÌM THEO TÊN ============ --%>
             <section class="panel">
                 <div class="panel-head"><h2>Tìm theo tên sân</h2></div>
@@ -429,6 +441,7 @@
                         <input type="number" id="pricePerHour" name="pricePerHour" min="1" step="1"
                                value="<%= esc(formPrice) %>">
 
+<<<<<<< HEAD
 =======
 <<<<<<< Updated upstream
             <%-- ============ FORM THÊM / SỬA SÂN ============ --%>
@@ -510,18 +523,24 @@
                                value="<%= esc(formPrice) %>">
 
 >>>>>>> feature/admin-courts
+=======
+>>>>>>> origin/feature/court-list-hung
                         <div class="actions">
                             <button type="submit"><%= editing ? "Lưu thay đổi" : "Thêm sân" %></button>
                             <% if (editing) { %>
                                 <a class="btn btn-gray" href="<%= url %>">Hủy sửa</a>
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> Stashed changes
 >>>>>>> feature/admin-courts
+=======
+>>>>>>> origin/feature/court-list-hung
                             <% } %>
                         </div>
                     </form>
                 </div>
+<<<<<<< HEAD
 <<<<<<< HEAD
             </section>
 
@@ -745,6 +764,67 @@
             </section>
 >>>>>>> Stashed changes
 >>>>>>> feature/admin-courts
+=======
+            </section>
+
+            <%-- ============ DANH SÁCH SÂN ============ --%>
+            <section class="panel">
+                <div class="panel-head"><h2>Danh sách sân</h2></div>
+                <div class="table-wrap">
+                    <table>
+                        <tr>
+                            <th>ID</th>
+                            <th>Tên sân</th>
+                            <th>Loại</th>
+                            <th>Giá/giờ (VNĐ)</th>
+                            <th>Trạng thái</th>
+                            <th>Thao tác</th>
+                        </tr>
+
+                        <% if (courts == null || courts.isEmpty()) { %>
+                            <tr><td colspan="6" class="empty">Chưa có sân nào.</td></tr>
+                        <% } else { %>
+                            <% for (Court c : courts) { %>
+                                <tr>
+                                    <td>#<%= c.getCourtId() %></td>
+                                    <td><b><%= esc(c.getCourtName()) %></b></td>
+                                    <td><%= esc(c.getSportType()) %></td>
+                                    <td><b><%= money.format(c.getPricePerHour()) %> đ</b></td>
+                                    <td>
+                                        <% if (c.isActive()) { %>
+                                            <span class="tag on">Hoạt động</span>
+                                        <% } else { %>
+                                            <span class="tag off">Ngừng hoạt động</span>
+                                        <% } %>
+                                    </td>
+                                    <td>
+                                        <div class="cell-actions">
+                                            <%-- Nút Sửa --%>
+                                            <a class="btn btn-sm btn-orange"
+                                               href="<%= url %>?action=edit&id=<%= c.getCourtId() %>">Sửa</a>
+
+                                            <%-- Nút Ngừng hoạt động / Kích hoạt lại --%>
+                                            <form class="inline" method="post" action="<%= url %>">
+                                                <input type="hidden" name="action" value="toggle">
+                                                <input type="hidden" name="courtId" value="<%= c.getCourtId() %>">
+                                                <%-- gửi giá trị ngược với trạng thái hiện tại --%>
+                                                <input type="hidden" name="active" value="<%= !c.isActive() %>">
+                                                <% if (c.isActive()) { %>
+                                                    <button type="submit" class="btn-sm btn-red"
+                                                            onclick="return confirm('Ngừng hoạt động sân này?');">Ngừng</button>
+                                                <% } else { %>
+                                                    <button type="submit" class="btn-sm btn-green">Kích hoạt</button>
+                                                <% } %>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <% } %>
+                        <% } %>
+                    </table>
+                </div>
+            </section>
+>>>>>>> origin/feature/court-list-hung
         </main>
     </body>
 </html>
