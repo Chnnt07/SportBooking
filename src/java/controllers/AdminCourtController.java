@@ -13,21 +13,21 @@ import java.util.List;
 import models.Court;
 
 /**
- * Admin quản lý sân: xem danh sách, thêm, sửa, ngừng hoạt động / kích hoạt lại.
- * URL được ánh xạ trong web.xml (không dùng @WebServlet): /feature/admin-courts
+ * Admin quản lý sân: xem danh sách, tìm theo tên, thêm, sửa, ngừng hoạt động / kích hoạt lại.
+ * URL được ánh xạ trong web.xml (không dùng @WebServlet): /AdminCourtController
+ * (AuthFilter cũng chặn đúng URL này: phải đăng nhập và có role ADMIN)
  *
- * GET  /feature/admin-courts                  -> hiện danh sách + form thêm sân
- * GET  /feature/admin-courts?action=edit&id=3 -> hiện danh sách + form sửa sân số 3
- * POST action=add                             -> thêm sân
- * POST action=update                          -> sửa sân
- * POST action=toggle                          -> ngừng hoạt động / kích hoạt lại sân
- *
- * Vì AuthFilter không chặn URL này nên servlet tự kiểm tra: phải đăng nhập và có role ADMIN.
+ * GET  /AdminCourtController                          -> hiện danh sách + form thêm sân
+ * GET  /AdminCourtController?action=edit&id=3         -> nạp sân số 3 vào form sửa
+ * GET  /AdminCourtController?action=search&keyword=A  -> tìm sân theo tên
+ * POST action=add                                     -> thêm sân
+ * POST action=update                                  -> sửa sân (UPDATE)
+ * POST action=toggle                                  -> ngừng hoạt động / kích hoạt lại sân
  */
 public class AdminCourtController extends HttpServlet {
 
     private static final String PAGE = "/WEB-INF/views/admin/courts.jsp";
-    private static final String URL = "/feature/admin-courts";
+    private static final String URL = "/AdminCourtController";
 
     // Các loại sân hợp lệ (trùng với dữ liệu mẫu trong database)
     private static final List<String> SPORT_TYPES = Arrays.asList("Badminton", "Pickleball", "Football");
@@ -43,8 +43,10 @@ public class AdminCourtController extends HttpServlet {
 
         AdminCourtDAO dao = new AdminCourtDAO();
         try {
+            String action = request.getParameter("action");
+
             // Bấm nút "Sửa" -> nạp thông tin sân vào form
-            if ("edit".equals(request.getParameter("action"))) {
+            if ("edit".equals(action)) {
                 int id = toInt(request.getParameter("id"));
                 Court court = dao.getById(id);
                 if (court == null) {
@@ -57,6 +59,10 @@ public class AdminCourtController extends HttpServlet {
                     request.setAttribute("formPrice",
                             court.getPricePerHour().stripTrailingZeros().toPlainString());
                 }
+
+            // Thanh "Tìm theo tên sân": có sân tên khớp thì hiện danh sách các sân đó
+            } else if ("search".equals(action)) {
+                searchCourts(request, dao);
             }
             showPage(request, response, dao);
         } finally {
@@ -152,6 +158,29 @@ public class AdminCourtController extends HttpServlet {
         }
     }
 
+    // ===================== Tìm sân theo tên =====================
+    private void searchCourts(HttpServletRequest request, AdminCourtDAO dao) {
+        String keyword = clean(request.getParameter("keyword"));
+        request.setAttribute("searchKeyword", keyword); // để ô tìm kiếm giữ lại chữ vừa gõ
+
+        if (keyword.isEmpty()) {
+            request.setAttribute("message", "Vui lòng nhập tên sân cần tìm.");
+            request.setAttribute("messageType", "error");
+            return;
+        }
+
+        List<Court> found = dao.searchByName(keyword);
+        if (found.isEmpty()) {
+            // Không có sân nào -> báo lỗi, trang vẫn hiện toàn bộ danh sách
+            request.setAttribute("message", "Không tìm thấy sân nào có tên \"" + keyword + "\".");
+            request.setAttribute("messageType", "error");
+        } else {
+            request.setAttribute("courts", found); // chỉ hiện các sân tìm được
+            request.setAttribute("message", "Tìm thấy " + found.size() + " sân có tên chứa \"" + keyword + "\".");
+            request.setAttribute("messageType", "success");
+        }
+    }
+
     // ===================== Các hàm hỗ trợ =====================
 
     // Chỉ cho Admin đã đăng nhập vào. Session do AuthController lưu: "userID" và "role".
@@ -217,7 +246,10 @@ public class AdminCourtController extends HttpServlet {
             session.removeAttribute("flashType");
         }
 
-        request.setAttribute("courts", dao.getAll());
+        // Nếu chưa có danh sách riêng (ví dụ kết quả tìm kiếm) thì lấy tất cả sân
+        if (request.getAttribute("courts") == null) {
+            request.setAttribute("courts", dao.getAll());
+        }
 
         // Nếu lấy dữ liệu lỗi (mất kết nối, sai tên database...) thì báo lỗi ngay trên trang
         if (dao.getLastError() != null) {

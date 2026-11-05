@@ -51,7 +51,7 @@
     </servlet>
     <servlet-mapping>
         <servlet-name>AdminCourtController</servlet-name>
-        <url-pattern>/feature/admin-courts</url-pattern>
+        <url-pattern>/AdminCourtController</url-pattern>
     </servlet-mapping>
     <session-config>
         <session-timeout>30</session-timeout>
